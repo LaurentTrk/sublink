@@ -31,7 +31,7 @@ pub use frame_support::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		IdentityFee, Weight,
 	},
-	StorageValue,
+	PalletId, StorageValue,
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -43,6 +43,14 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
 pub use pallet_template;
+
+// Chainlink Feeds
+pub use pallet_chainlink_feed::{self, RoundId};
+// reexport for genesis
+pub use pallet_chainlink_feed::FeedBuilder;
+use weights::pallet_chainlink_feed::WeightInfo as ChainlinkWeightInfo;
+
+pub mod weights;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -66,7 +74,7 @@ pub type Hash = sp_core::H256;
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
-/// to even the core data structures.
+/// to even the core data structures.PalletId
 pub mod opaque {
 	use super::*;
 
@@ -236,6 +244,7 @@ impl pallet_timestamp::Config for Runtime {
 	type WeightInfo = ();
 }
 
+
 impl pallet_balances::Config for Runtime {
 	type MaxLocks = ConstU32<50>;
 	type MaxReserves = ();
@@ -263,6 +272,32 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+/// Configure Chainlink Feeds pallet
+pub type FeedId = u32;
+pub type Value = u128;
+
+parameter_types! {
+	pub const FeedPalletId: PalletId = PalletId(*b"linkfeed");
+	pub const MinimumReserve: Balance = 500 * 1000;
+	pub const StringLimit: u32 = 30;
+	pub const OracleCountLimit: u32 = 25;
+	pub const FeedLimit: FeedId = 100;
+}
+
+impl pallet_chainlink_feed::Config for Runtime {
+	type Event = Event;
+	type FeedId = FeedId;
+	type Value = Value;
+	type Currency = Balances;
+	type PalletId = FeedPalletId;
+	type MinimumReserve = MinimumReserve;
+	type StringLimit = StringLimit;
+	type OracleCountLimit = OracleCountLimit;
+	type FeedLimit = FeedLimit;
+	type OnAnswerHandler = ();
+	type WeightInfo = ChainlinkWeightInfo<Runtime>;
+}
+
 /// Configure the pallet-template in pallets/template.
 impl pallet_template::Config for Runtime {
 	type Event = Event;
@@ -285,6 +320,7 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
+		ChainlinkFeed: pallet_chainlink_feed::{Pallet, Call, Config<T>, Storage, Event<T>}
 	}
 );
 
