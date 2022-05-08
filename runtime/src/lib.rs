@@ -44,6 +44,22 @@ use pallet_transaction_payment::CurrencyAdapter;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
+use codec::Encode;
+use frame_support::log::{
+    error,
+    trace,
+};
+use pallet_contracts::chain_extension::{
+    ChainExtension,
+    Environment,
+    Ext,
+    InitState,
+    RetVal,
+    SysConfig,
+    UncheckedFrom,
+};
+use sp_runtime::DispatchError;
+
 /// Import the template pallet.
 pub use pallet_template;
 
@@ -54,6 +70,9 @@ pub use pallet_chainlink_feed::FeedBuilder;
 use weights::pallet_chainlink_feed::WeightInfo as ChainlinkWeightInfo;
 
 pub mod weights;
+
+/// Contract extension for `FetchRandom`
+pub struct FetchRandomExtension;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -389,7 +408,7 @@ impl pallet_contracts::Config for Runtime {
 	type DepositPerByte = DepositPerByte;
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-	type ChainExtension = ();
+	type ChainExtension = FetchRandomExtension;
 	type DeletionQueueDepth = DeletionQueueDepth;
 	type DeletionWeightLimit = DeletionWeightLimit;
 	type Schedule = Schedule;
@@ -709,4 +728,42 @@ impl_runtime_apis! {
 			Executive::execute_block_no_check(block)
 		}
 	}
+}
+
+impl ChainExtension<Runtime> for FetchRandomExtension {
+    fn call<E: Ext>(
+        func_id: u32,
+        env: Environment<E, InitState>,
+    ) -> Result<RetVal, DispatchError>
+    where
+        <E::T as SysConfig>::AccountId:
+            UncheckedFrom<<E::T as SysConfig>::Hash> + AsRef<[u8]>,
+    {
+        match func_id {
+            1101 => {
+                let mut env = env.buf_in_buf_out();
+                let arg: [u8; 32] = env.read_as()?;
+                let random_seed = crate::RandomnessCollectiveFlip::random(&arg).0;
+                let random_slice = random_seed.encode();
+                trace!(
+                    target: "runtime",
+                    "[ChainExtension]|call|func_id:{:}",
+                    func_id
+                );
+                env.write(&random_slice, false, None).map_err(|_| {
+                    DispatchError::Other("ChainExtension failed to call random")
+                })?;
+            }
+
+            _ => {
+                error!("Called an unregistered `func_id`: {:}", func_id);
+                return Err(DispatchError::Other("Unimplemented func_id"))
+            }
+        }
+        Ok(RetVal::Converging(0))
+    }
+
+    fn enabled() -> bool {
+        true
+    }
 }
