@@ -258,7 +258,7 @@ pub mod pallet {
 
 	/// Trait for read-only access to a feed.
 	pub trait FeedInterface<T: frame_system::Config> {
-		type Value: Parameter + BaseArithmetic;
+		type Value: Parameter + BaseArithmetic + MaxEncodedLen;
 
 		/// Returns the id of the first round that contains non-default data.
 		///
