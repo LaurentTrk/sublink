@@ -6,6 +6,7 @@ use frame_support::{
 	log::{error, trace},
 };
 pub use frame_support::dispatch::DispatchError;
+use frame_support::dispatch::Encode;
 use log;
 
 use pallet_contracts::chain_extension::{
@@ -39,6 +40,16 @@ where   Runtime: pallet_contracts::Config,
                 let feed = pallet_chainlink_feed::Pallet::<Runtime>::feed(feed_id.into()).unwrap();
                 let RoundData { answer,..} = feed.latest_data();
                 log::info!("called latest_data extension with feed_id {:?} = {:?}", feed_id, answer);
+                log::info!("Another log");
+                let r = answer.encode();
+                log::info!("One more");
+                log::info!("Returning encoded = {:?}", r);
+				env.write(&r, false, None).map_err(|_| {
+                    log::info!("Error when writing result");
+					DispatchError::Other(
+						"ChainlinkExtension failed to return result",
+					)
+				})?;
             }
 
             _ => {

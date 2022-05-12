@@ -311,6 +311,7 @@ pub mod pallet {
 			+ PartialEq
 			+ BaseArithmetic
 			+ MaybeSerializeDeserialize
+			+ Encode
 			+ MaxEncodedLen;
 
 		/// Interface used for balance transfers.
