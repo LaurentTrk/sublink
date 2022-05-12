@@ -1,0 +1,15 @@
+../target/release/parachain-collator \
+--alice \
+--collator \
+--force-authoring \
+--chain ./specs/rococo-local-sublink-parachain-2000-raw.json \
+--base-path /data/temp/sublink/alice \
+--port 40333 \
+--ws-port 8844 \
+-linfo,runtime::contracts=debug \
+-- \
+--execution wasm \
+--chain /data/Dev/chainlink/relaychain/chain.spec \
+--port 30343 \
+--ws-port 9977 \
+--bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWLcNx6Lzrq6M3EtVfciBP6dXFt5S6iwavPJ6FA7A5nsPQ \
