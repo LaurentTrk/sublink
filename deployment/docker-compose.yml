@@ -1,0 +1,64 @@
+version: '2'
+
+services:
+  polkadot-alice:
+    container_name: alicevalidator
+    image: parity/polkadot:v0.9.20
+    ports:
+      - 30333:30333 # p2p port
+      - 9933:9933 # rpc port
+      - 9944:9944 # ws port
+    networks:
+      relay:
+        ipv4_address: 10.5.0.2
+    volumes:
+      - ${PWD}:/polkadot
+    command: [
+      "--name", "SubLinkRelayAlice",
+      "--ws-external",
+      "--unsafe-rpc-external",
+      "--rpc-methods=unsafe",
+      "--rpc-cors", "all",
+      "--alice",
+      "--validator",
+      "--base-path","/polkadot/chains/relaychain/alice",
+      "--chain","/polkadot/specs/relaychain.spec",
+      "--port","30333",
+      "--ws-port","9944",
+      "--node-key","006de8d9b217dd9a501bab2c2060c1f0861e70d73f6e62bc64389151afda0abb"
+    ]
+
+  polkadot-bob:
+    container_name: bobvalidator
+    image: parity/polkadot:v0.9.20
+    ports:
+      - 30334:30333 # p2p port
+      - 9934:9933 # rpc port
+      - 9945:9944 # ws port
+    networks:
+      relay:
+        ipv4_address: 10.5.0.3
+    volumes:
+      - ${PWD}:/polkadot
+    command: [
+      "--name", "SubLinkRelayBob",
+      "--ws-external",
+      "--unsafe-rpc-external",
+      "--rpc-methods=unsafe",
+      "--rpc-cors", "all",
+      "--bob",
+      "--validator",
+      "--base-path","/polkadot/chains/relaychain/bob",
+      "--chain","/polkadot/specs/relaychain.spec",
+      "--port","30333",
+      "--ws-port","9944",
+      "--bootnodes","/ip4/10.5.0.2/tcp/30333/p2p/12D3KooWLcNx6Lzrq6M3EtVfciBP6dXFt5S6iwavPJ6FA7A5nsPQ"
+    ]
+
+networks:
+  relay:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+         gateway: 10.5.0.1

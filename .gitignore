@@ -17,3 +17,4 @@
 
 # Generated parachain specs
 deployment/specs/*
+deployment/chains/*
