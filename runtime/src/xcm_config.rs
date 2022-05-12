@@ -158,6 +158,7 @@ pub type Barrier = DenyThenTry<
 		AllowTopLevelPaidExecutionFrom<Everything>,
 		AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
 		// ^^^ Parent and its exec plurality get free execution
+		AllowUnpaidExecutionFrom<Everything>
 	),
 >;
 
@@ -218,3 +219,10 @@ impl cumulus_pallet_xcm::Config for Runtime {
 	type Event = Event;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
+
+impl cumulus_ping::Config for Runtime {
+	type Event = Event;
+	type Origin = Origin;
+	type Call = Call;
+	type XcmSender = XcmRouter;
+  }

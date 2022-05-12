@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use frame_support::{
-	log::{error, trace},
+	log::{error},
 };
 pub use frame_support::dispatch::DispatchError;
 use frame_support::dispatch::Encode;
@@ -34,7 +34,7 @@ where   Runtime: pallet_contracts::Config,
             // latest_data
             70930000 => {
 				let mut env = env.buf_in_buf_out();
-				let (feed_id): (<Runtime as pallet_chainlink_feed::Config>::FeedId) =
+				let feed_id: <Runtime as pallet_chainlink_feed::Config>::FeedId =
 					env.read_as_unbounded(env.in_len())?;
 
                 let feed = pallet_chainlink_feed::Pallet::<Runtime>::feed(feed_id.into()).unwrap();

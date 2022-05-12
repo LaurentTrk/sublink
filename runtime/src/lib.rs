@@ -192,7 +192,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// up by `pallet_aura` to implement `fn slot_duration()`.
 ///
 /// Change this to adjust the block time.
-pub const MILLISECS_PER_BLOCK: u64 = 12000;
+pub const MILLISECS_PER_BLOCK: u64 = 6000;
 
 // NOTE: Currently it is not possible to change the slot duration after the chain has started.
 //       Attempting to do so will brick block production.
@@ -552,6 +552,11 @@ impl pallet_template::Config for Runtime {
 	type Oracle = ChainlinkFeed;
 }
 
+impl pallet_sudo::Config for Runtime {
+	type Call = Call;
+	type Event = Event;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -566,6 +571,8 @@ construct_runtime!(
 		} = 1,
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
 		ParachainInfo: parachain_info::{Pallet, Storage, Config} = 3,
+
+		Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 4,
 
 		// Monetary stuff.
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
@@ -591,6 +598,9 @@ construct_runtime!(
 
 		// Template
 		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 40,
+
+		// Tests XCM
+		Spambot: cumulus_ping::{Pallet, Call, Storage, Event<T>} = 99,
 	}
 );
 

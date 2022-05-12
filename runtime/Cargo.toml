@@ -84,7 +84,8 @@ pallet-contracts-rpc-runtime-api = { version = "4.0.0-dev", default-features = f
 pallet-chainlink-feed = { path = '../pallets/pallet-chainlink-feed', default-features = false }
 runtime-chainlink-ink-extension = { path = '../pallets/chainlink-ink-extension/runtime', default-features = false }
 
-
+# XCM tests
+cumulus-ping = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.20', default-features = false }
 
 
 
@@ -143,7 +144,8 @@ std = [
 	"pallet-contracts/std",
 	"pallet-contracts-primitives/std",
 	"pallet-contracts-rpc-runtime-api/std",
-	"runtime-chainlink-ink-extension/std"
+	"runtime-chainlink-ink-extension/std",
+	"cumulus-ping/std"
 ]
 
 runtime-benchmarks = [

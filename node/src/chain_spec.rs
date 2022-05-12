@@ -1,5 +1,5 @@
 use cumulus_primitives_core::ParaId;
-use parachain_template_runtime::{AccountId, AuraId, Signature, ChainlinkFeedConfig, EXISTENTIAL_DEPOSIT};
+use parachain_template_runtime::{AccountId, AuraId, Signature, ChainlinkFeedConfig, EXISTENTIAL_DEPOSIT, SudoConfig};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
@@ -192,6 +192,10 @@ fn testnet_genesis(
 			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
 		},
 		parachain_info: parachain_template_runtime::ParachainInfoConfig { parachain_id: id },
+		sudo: SudoConfig {
+			// Assign network admin rights.
+			key: Some(get_account_id_from_seed::<sr25519::Public>("Alice")),
+		},
 		collator_selection: parachain_template_runtime::CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
