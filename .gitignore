@@ -18,3 +18,4 @@
 # Generated parachain specs
 deployment/specs/*
 deployment/chains/*
+parachain-collator
