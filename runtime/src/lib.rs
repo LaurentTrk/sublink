@@ -592,12 +592,13 @@ construct_runtime!(
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
 		// SubLink
-		ChainlinkFeed: pallet_chainlink_feed,
-		RandomnessCollectiveFlip: pallet_randomness_collective_flip,
-		Contracts: pallet_contracts,
+		ChainlinkFeed: pallet_chainlink_feed = 70,
+		RandomnessCollectiveFlip: pallet_randomness_collective_flip = 71,
+		Contracts: pallet_contracts = 72,
+		SubLinkXCM: sublink_xcm = 73,
 
 		// Template
-		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 40,
+		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 80,
 
 		// Tests XCM
 		Spambot: cumulus_ping::{Pallet, Call, Storage, Event<T>} = 99,

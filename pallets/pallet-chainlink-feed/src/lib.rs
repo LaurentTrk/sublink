@@ -15,6 +15,7 @@ pub mod traits;
 
 pub mod default_weights;
 mod utils;
+// use serde_json::json;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -37,12 +38,22 @@ pub mod pallet {
 		convert::{TryFrom, TryInto},
 		prelude::*,
 	};
-
+	use sp_runtime::{
+		offchain::{
+			http,
+			Duration,
+		},
+		RuntimeDebug,
+	};
+	use sp_std::vec::Vec;
+	use lite_json::json::JsonValue;
 	pub use crate::feed::{FeedBuilder, FeedBuilderOf};
 	use crate::{
 		traits::OnAnswerHandler,
 		utils::median,
 	};
+	// extern crate serde_json;
+	// use serde_json::json;
 
 	pub type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -586,7 +597,32 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+
+		fn on_finalize(_block_number: T::BlockNumber) {
+			log::info!("***** Chainlink Pricefeed on_finalize");
+		}
+
+		/// Offchain Worker entry point.
+		///
+		/// By implementing `fn offchain_worker` you declare a new offchain worker.
+		/// This function will be called when the node is fully synced and a new best block is
+		/// succesfuly imported.
+		/// Note that it's not guaranteed for offchain workers to run on EVERY block, there might
+		/// be cases where some blocks are skipped, or for some the worker runs twice (re-orgs),
+		/// so the code should be able to handle that.
+		/// You can use `Local Storage` API to coordinate runs of the worker.
+		fn offchain_worker(_block_number: T::BlockNumber) {
+			// Note that having logs compiled to WASM may cause the size of the blob to increase
+			// significantly. You can use `RuntimeDebug` custom derive to hide details of the types
+			// in WASM. The `sp-api` crate also provides a feature `disable-logging` to disable
+			// all logging and thus, remove any logging from the WASM.
+			log::info!("***** Chainlink Pricefeed Offchain worker");
+
+			Self::fetch_price().map_err(|err| log::warn!("{:?}", err)).ok();
+			Self::trigger_chainlink_job().map_err(|err| log::warn!("{:?}", err)).ok();
+		}
+	}
 
 	impl<T: Config> Pallet<T> {
 		/// Shortcut for getting account ID
@@ -640,6 +676,122 @@ pub mod pallet {
 
 			Ok(id)
 		}
+
+		fn fetch_price() -> Result<u32, http::Error> {
+			// We want to keep the offchain worker execution time reasonable, so we set a hard-coded
+			// deadline to 2s to complete the external call.
+			// You can also wait idefinitely for the response, however you may still get a timeout
+			// coming from the host machine.
+			let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+			// Initiate an external HTTP GET request.
+			// This is using high-level wrappers from `sp_runtime`, for the low-level calls that
+			// you can find in `sp_io`. The API is trying to be similar to `reqwest`, but
+			// since we are running in a custom WASM execution environment we can't simply
+			// import the library here.
+			let request =
+				http::Request::get("https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD");
+			// We set the deadline for sending of the request, note that awaiting response can
+			// have a separate deadline. Next we send the request, before that it's also possible
+			// to alter request headers or stream body content in case of non-GET requests.
+			let pending = request.deadline(deadline).send().map_err(|_| http::Error::IoError)?;
+	
+			// The request is already being processed by the host, we are free to do anything
+			// else in the worker (we can send multiple concurrent requests too).
+			// At some point however we probably want to check the response though,
+			// so we can block current thread and wait for it to finish.
+			// Note that since the request is being driven by the host, we don't have to wait
+			// for the request to have it complete, we will just not read the response.
+			let response = pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+			// Let's check the status code before we proceed to reading the response.
+			if response.code != 200 {
+				log::warn!("Unexpected status code: {}", response.code);
+				return Err(http::Error::Unknown)
+			}
+	
+			// Next we want to fully read the response body and collect it to a vector of bytes.
+			// Note that the return object allows you to read the body in chunks as well
+			// with a way to control the deadline.
+			let body = response.body().collect::<Vec<u8>>();
+	
+			// Create a str slice from the body.
+			let body_str = sp_std::str::from_utf8(&body).map_err(|_| {
+				log::warn!("No UTF8 body");
+				http::Error::Unknown
+			})?;
+	
+			let price = match Self::parse_price(body_str) {
+				Some(price) => Ok(price),
+				None => {
+					log::warn!("Unable to extract price from the response: {:?}", body_str);
+					Err(http::Error::Unknown)
+				},
+			}?;
+	
+			log::warn!("Got price: {} cents", price);
+	
+			Ok(price)
+		}		
+
+		fn trigger_chainlink_job() -> Result<(), http::Error> {
+
+			let post_body = vec![r#"{
+				"id": "001",
+				"data":{
+					"request_type": "triggerexternaljob",
+					"job_external_uuid": "9ce988a3-9b74-4525-91fd-2709b7815789",
+					"request_id": "002",
+					"feed_id": "0",
+					"round_id": "15"
+				}
+			
+			}"#];
+
+			let request = http::Request::post("http://sublink-adapter:8080", post_body);
+			let timeout =
+				sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+			let pending = request
+				.deadline(timeout)
+				.send()
+				.map_err(|_| http::Error::IoError)?;
+		
+			let response = pending
+				.try_wait(timeout)
+				.map_err(|_| http::Error::DeadlineReached)??;
+		
+			if response.code != 200 {
+				return Err(http::Error::Unknown);
+			}
+			let body = response.body().collect::<Vec<u8>>();
+			let body_str = sp_std::str::from_utf8(&body).map_err(|_| {
+				log::warn!("No UTF8 body");
+				http::Error::Unknown
+			})?;
+			// let response_result: ResponseResult = serde_json::from_str::<ResponseResult>(&res_body)
+			// 	.map_err(|_| http::Error::IoError)?;
+			log::warn!("Got answer: {:?}", body_str);
+			Ok(())
+		}		
+
+		/// Parse the price from the given JSON string using `lite-json`.
+		///
+		/// Returns `None` when parsing failed or `Some(price in cents)` when parsing is successful.
+		fn parse_price(price_str: &str) -> Option<u32> {
+			let val = lite_json::parse_json(price_str);
+			let price = match val.ok()? {
+				JsonValue::Object(obj) => {
+					let (_, v) = obj.into_iter().find(|(k, _)| k.iter().copied().eq("USD".chars()))?;
+					match v {
+						JsonValue::Number(number) => number,
+						_ => return None,
+					}
+				},
+				_ => return None,
+			};
+
+			let exp = price.fraction_length.saturating_sub(2);
+			Some(price.integer as u32 * 100 + (price.fraction / 10_u64.pow(exp)) as u32)
+		}
+
 	}
 
 	#[pallet::call]
@@ -710,6 +862,8 @@ pub mod pallet {
 			pruning_window: Option<u32>,
 			max_debt: Option<BalanceOf<T>>,
 		) -> DispatchResult {
+
+			log::info!("***** Creating feed");
 			let owner = ensure_signed(origin)?;
 			ensure!(
 				FeedCreators::<T>::contains_key(&owner),

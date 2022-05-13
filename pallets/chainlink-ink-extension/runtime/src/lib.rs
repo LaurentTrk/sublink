@@ -30,20 +30,17 @@ where   Runtime: pallet_contracts::Config,
     where
         <E::T as SysConfig>::AccountId: UncheckedFrom<<E::T as SysConfig>::Hash> + AsRef<[u8]>,
     {
+        log::info!("***** Chainlink extension called {:?}", func_id);
         match func_id {
-            // latest_data
+            // latest_data by id
             70930000 => {
 				let mut env = env.buf_in_buf_out();
 				let feed_id: <Runtime as pallet_chainlink_feed::Config>::FeedId =
 					env.read_as_unbounded(env.in_len())?;
-
                 let feed = pallet_chainlink_feed::Pallet::<Runtime>::feed(feed_id.into()).unwrap();
                 let RoundData { answer,..} = feed.latest_data();
                 log::info!("called latest_data extension with feed_id {:?} = {:?}", feed_id, answer);
-                log::info!("Another log");
                 let r = answer.encode();
-                log::info!("One more");
-                log::info!("Returning encoded = {:?}", r);
 				env.write(&r, false, None).map_err(|_| {
                     log::info!("Error when writing result");
 					DispatchError::Other(

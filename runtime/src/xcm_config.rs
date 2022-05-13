@@ -1,6 +1,6 @@
 use super::{
 	AccountId, Balances, Call, Event, Origin, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
-	WeightToFee, XcmpQueue,
+	WeightToFee, XcmpQueue, ChainlinkFeed
 };
 use core::marker::PhantomData;
 use frame_support::{
@@ -220,9 +220,17 @@ impl cumulus_pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
+impl sublink_xcm::Config for Runtime {
+	type Event = Event;
+	type Origin = Origin;
+	type Call = Call;
+	type XcmSender = XcmRouter;
+	type Oracle = ChainlinkFeed;
+  }
+
 impl cumulus_ping::Config for Runtime {
 	type Event = Event;
 	type Origin = Origin;
 	type Call = Call;
 	type XcmSender = XcmRouter;
-  }
+}
