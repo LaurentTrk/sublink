@@ -15,13 +15,16 @@ use pallet_contracts::chain_extension::{
 
 use pallet_chainlink_feed::{FeedOracle, FeedInterface, RoundData};
 
+
 /// The chain Extension for ChainLink
-pub struct ChainlinkExtension<Runtime>(sp_std::marker::PhantomData<Runtime>);
+pub struct SubLinkInkExtension<Runtime>(sp_std::marker::PhantomData<Runtime>);
 
 
-impl<Runtime> ChainExtension<Runtime> for ChainlinkExtension<Runtime> 
+impl<Runtime> ChainExtension<Runtime> for SubLinkInkExtension<Runtime> 
 where   Runtime: pallet_contracts::Config,
+        Runtime: sublink_parachain_oracle::Config,
         Runtime: pallet_chainlink_feed::Config,
+        Runtime: sublink_xcm::Config,
     {
     fn call<E: Ext>(
         func_id: u32,
@@ -35,16 +38,16 @@ where   Runtime: pallet_contracts::Config,
             // latest_data by id
             70930000 => {
 				let mut env = env.buf_in_buf_out();
-				let feed_id: <Runtime as pallet_chainlink_feed::Config>::FeedId =
-					env.read_as_unbounded(env.in_len())?;
-                let feed = pallet_chainlink_feed::Pallet::<Runtime>::feed(feed_id.into()).unwrap();
+				// let feed_id: <Runtime as pallet_chainlink_feed::Config>::FeedId = env.read_as_unbounded(env.in_len())?;
+				let feed_id: <<Runtime as sublink_xcm::Config>::Oracle as FeedOracle<Runtime>>::FeedId = env.read_as_unbounded(env.in_len())?;
+                let feed = sublink_parachain_oracle::Pallet::<Runtime>::feed(feed_id.clone()).unwrap();
                 let RoundData { answer,..} = feed.latest_data();
                 log::info!("called latest_data extension with feed_id {:?} = {:?}", feed_id, answer);
                 let r = answer.encode();
 				env.write(&r, false, None).map_err(|_| {
                     log::info!("Error when writing result");
 					DispatchError::Other(
-						"ChainlinkExtension failed to return result",
+						"SubLinkInkExtension failed to return result",
 					)
 				})?;
             }

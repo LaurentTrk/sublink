@@ -15,6 +15,17 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use pallet_chainlink_feed::pallet::{ FeedOracle, RoundData, FeedInterface };
 
+	pub type FeedValue<T> = <<<T as Config>::Oracle as FeedOracle<T>>::Feed as FeedInterface<T>>::Value;
+	pub type FeedId<T> = <<T as Config>::Oracle as FeedOracle<T>>::FeedId;
+
+	pub trait FeedRequester<T: Config> {
+		fn request_latest_data(feed_id: FeedId<T>); 
+	}
+
+	pub trait FeedReceiver<T: Config> {
+		fn receive_latest_data(feed_id: FeedId<T>, feed_value: FeedValue<T>); 
+	}
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
@@ -35,24 +46,9 @@ pub mod pallet {
 		type XcmSender: SendXcm;
 
 		type Oracle: FeedOracle<Self>;
+
+		type FeedReceiver: FeedReceiver<Self>;
 	}
-
-	/// The total number of pings sent.
-	#[pallet::storage]
-	pub(super) type SubLinkParaId<T: Config> = StorageValue<_, ParaId, ValueQuery>;
-
-	/// The target parachains to ping.
-	#[pallet::storage]
-	pub(super) type Targets<T: Config> = StorageValue<_, Vec<(ParaId, Vec<u8>)>, ValueQuery>;
-
-	/// The total number of pings sent.
-	#[pallet::storage]
-	pub(super) type PingCount<T: Config> = StorageValue<_, u32, ValueQuery>;
-
-	/// The sent pings.
-	#[pallet::storage]
-	pub(super) type Pings<T: Config> =
-		StorageMap<_, Blake2_128Concat, u32, T::BlockNumber, OptionQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -109,37 +105,26 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 
 		#[pallet::weight(0)]
-		pub fn ask_latest_data(_origin: OriginFor<T>, feed_id: <T::Oracle as FeedOracle<T>>::FeedId) -> DispatchResult {
-			log::info!("***** Sublink XCM ask_latest_data called");
-
-			// TODO LTK : need to register SubLink parachain id
-			let para: ParaId = 2000.into();
-			match T::XcmSender::send_xcm(
-				(1, Junction::Parachain(para.into())),
-				Xcm(vec![Transact {
-					origin_type: OriginKind::Native,
-					require_weight_at_most: 1_000,
-					call: <T as Config>::Call::from(Call::<T>::get_latest_data {
-						feed_id: feed_id.clone(),
-					})
-					.encode()
-					.into(),
-				}]),
-			) {
-				Ok(()) => {
-					log::info!("***** Sublink XCM ask_latest_data called get_latest_data");
-					Self::deposit_event(Event::SendRequestForLatestPriceValue(para, feed_id))
-				},
-				Err(e) => {
-					log::error!("***** Sublink XCM ask_latest_data cannot called get_latest_data");
-					Self::deposit_event(Event::ErrorSendingRequest(e, para, feed_id))
-				},
-			}
+		pub fn request_latest_data(_origin: OriginFor<T>, feed_id: FeedId<T>) -> DispatchResult {
+			<Pallet<T> as FeedRequester<T>>::request_latest_data(feed_id);
 			Ok(())
 		}
 
 		#[pallet::weight(0)]
-		pub fn get_latest_data(origin: OriginFor<T>, feed_id: <T::Oracle as FeedOracle<T>>::FeedId) -> DispatchResult {
+		pub fn receive_latest_data(origin: OriginFor<T>, feed_id: FeedId<T>, latest_value: FeedValue<T>) -> DispatchResult {
+			log::info!("***** Sublink XCM store_latest_data called");
+			// Only accept pings from other chains.
+			let para = ensure_sibling_para(<T as Config>::Origin::from(origin))?;
+
+			log::info!("***** Sublink XCM Received latest_value = {:?}", latest_value.clone());
+			<T as Config>::FeedReceiver::receive_latest_data(feed_id.clone(), latest_value.clone());
+			Self::deposit_event(Event::ReceiveLatestPriceValue(para, feed_id, latest_value));
+			Ok(())
+
+		}
+
+		#[pallet::weight(0)]
+		pub fn send_latest_data(origin: OriginFor<T>, feed_id: FeedId<T>) -> DispatchResult {
 			log::info!("***** Sublink XCM get_latest_data called");
 			// Only accept pings from other chains.
 			let para = ensure_sibling_para(<T as Config>::Origin::from(origin))?;
@@ -155,7 +140,7 @@ pub mod pallet {
 				Xcm(vec![Transact {
 					origin_type: OriginKind::Native,
 					require_weight_at_most: 1_000,
-					call: <T as Config>::Call::from(Call::<T>::store_latest_data {
+					call: <T as Config>::Call::from(Call::<T>::receive_latest_data {
 						feed_id: feed_id.clone(),
 						latest_value: answer.clone()
 					})
@@ -173,19 +158,42 @@ pub mod pallet {
 				},
 			}
 			Ok(())
-
-		}
-
-		#[pallet::weight(0)]
-		pub fn store_latest_data(origin: OriginFor<T>, feed_id: <T::Oracle as FeedOracle<T>>::FeedId, latest_value: <<T::Oracle as FeedOracle<T>>::Feed as FeedInterface<T>>::Value) -> DispatchResult {
-			log::info!("***** Sublink XCM store_latest_data called");
-			// Only accept pings from other chains.
-			let para = ensure_sibling_para(<T as Config>::Origin::from(origin))?;
-
-			log::info!("***** Sublink XCM Received latest_value = {:?}", latest_value.clone());
-			Self::deposit_event(Event::ReceiveLatestPriceValue(para, feed_id, latest_value));
-			Ok(())
-
 		}
 	}
+
+	impl<T: Config> FeedRequester<T> for Pallet<T> {
+		fn request_latest_data(feed_id: FeedId<T>){
+			log::info!("***** Sublink XCM ask_latest_data called");
+
+			// TODO LTK : need to register SubLink parachain id
+			let para: ParaId = 2000.into();
+			match T::XcmSender::send_xcm(
+				(1, Junction::Parachain(para.into())),
+				Xcm(vec![Transact {
+					origin_type: OriginKind::Native,
+					require_weight_at_most: 1_000,
+					call: <T as Config>::Call::from(Call::<T>::send_latest_data {
+						feed_id: feed_id.clone(),
+					})
+					.encode()
+					.into(),
+				}]),
+			) {
+				Ok(()) => {
+					log::info!("***** Sublink XCM ask_latest_data called get_latest_data");
+					Self::deposit_event(Event::SendRequestForLatestPriceValue(para, feed_id))
+				},
+				Err(e) => {
+					log::error!("***** Sublink XCM ask_latest_data cannot called get_latest_data");
+					Self::deposit_event(Event::ErrorSendingRequest(e, para, feed_id))
+				},
+			}
+		}		
+	}
+
+	impl<T: Config> FeedReceiver<T> for () {
+		fn receive_latest_data(_feed_id: FeedId<T>, _feed_value: FeedValue<T>) {
+			// do_nothing
+		}
+	}	
 }

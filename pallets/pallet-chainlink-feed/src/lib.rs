@@ -52,8 +52,6 @@ pub mod pallet {
 		traits::OnAnswerHandler,
 		utils::median,
 	};
-	// extern crate serde_json;
-	// use serde_json::json;
 
 	pub type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -202,7 +200,7 @@ pub mod pallet {
 	}
 
 	/// Round data as served by the `FeedInterface`.
-	#[derive(Clone, Encode, Decode, Default, Eq, PartialEq, RuntimeDebug)]
+	#[derive(Clone, Encode, Decode, Default, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 	pub struct RoundData<BlockNumber, Value> {
 		pub started_at: BlockNumber,
 		pub answer: Value,
@@ -2025,6 +2023,7 @@ pub mod pallet {
 			// LTK: Why just simply insert without take ?
 			Feeds::<T>::insert(self.id, &self.config);
 		}
+		
 	}
 
 	// We want the feed to sync automatically when going out of scope.

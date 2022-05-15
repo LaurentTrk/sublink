@@ -1,6 +1,6 @@
 use super::{
 	AccountId, Balances, Call, Event, Origin, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
-	WeightToFee, XcmpQueue, ChainlinkFeed
+	WeightToFee, XcmpQueue, ChainlinkFeed, SubLinkParachainOracle
 };
 use core::marker::PhantomData;
 use frame_support::{
@@ -50,8 +50,7 @@ pub type LocalAssetTransactor = CurrencyAdapter<
 	LocationToAccountId,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
-	// We don't track any teleports.
-	(),
+	// We don't track any teleports.pallet_chainlink_feed
 >;
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -226,6 +225,7 @@ impl sublink_xcm::Config for Runtime {
 	type Call = Call;
 	type XcmSender = XcmRouter;
 	type Oracle = ChainlinkFeed;
+	type FeedReceiver = SubLinkParachainOracle;
   }
 
 impl cumulus_ping::Config for Runtime {

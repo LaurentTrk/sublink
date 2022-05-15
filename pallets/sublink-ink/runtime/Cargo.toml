@@ -1,5 +1,5 @@
 [package]
-name = "runtime-chainlink-ink-extension"
+name = "sublink-ink-runtime"
 version = "0.0.1"
 authors = ["LaurentTrk <laurent.turek@gmail.com>"]
 edition = "2018"
@@ -13,6 +13,8 @@ frame-support = { version = "4.0.0-dev", default-features = false, git = "https:
 pallet-contracts = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
 
 pallet-chainlink-feed = { path = '../../pallet-chainlink-feed', default-features = false }
+sublink-parachain-oracle = { path = '../../sublink-parachain-oracle', default-features = false }
+sublink-xcm = { path = '../../sublink-xcm', default-features = false }
 
 [features]
 default = ["std"]
@@ -24,4 +26,6 @@ std = [
     "frame-support/std",
     "pallet-contracts/std",
     "pallet-chainlink-feed/std",
+    "sublink-parachain-oracle/std",
+    "sublink-xcm/std",
 ]

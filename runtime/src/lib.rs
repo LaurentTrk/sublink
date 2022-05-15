@@ -493,6 +493,17 @@ impl pallet_chainlink_feed::Config for Runtime {
 	type WeightInfo = ();
 }
 
+// impl sublink_oracle::Config for Runtime {
+// 	type Event = Event;
+// 	type Oracle = ChainlinkFeed;
+// }
+
+impl sublink_parachain_oracle::Config for Runtime {
+	type Event = Event;
+	type Oracle = ChainlinkFeed;
+	type FeedRequester = SubLinkXCM;
+}
+
 impl pallet_randomness_collective_flip::Config for Runtime {}
 
 parameter_types! {
@@ -538,7 +549,7 @@ impl pallet_contracts::Config for Runtime {
 	type DepositPerByte = DepositPerByte;
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-	type ChainExtension = runtime_chainlink_ink_extension::ChainlinkExtension<Self>;
+	type ChainExtension = sublink_ink_runtime::SubLinkInkExtension<Self>;
 	type DeletionQueueDepth = DeletionQueueDepth;
 	type DeletionWeightLimit = DeletionWeightLimit;
 	type Schedule = Schedule;
@@ -549,7 +560,8 @@ impl pallet_contracts::Config for Runtime {
 /// Configure the pallet template in pallets/template.
 impl pallet_template::Config for Runtime {
 	type Event = Event;
-	type Oracle = ChainlinkFeed;
+	// type Oracle = ChainlinkFeed;
+	type Oracle = SubLinkParachainOracle;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -596,7 +608,9 @@ construct_runtime!(
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip = 71,
 		Contracts: pallet_contracts = 72,
 		SubLinkXCM: sublink_xcm = 73,
-
+		// SubLinkOracle: sublink_oracle = 74,
+		SubLinkParachainOracle: sublink_parachain_oracle = 75,
+		
 		// Template
 		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 80,
 
