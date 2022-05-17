@@ -50,6 +50,10 @@ pub mod pallet {
 		type FeedReceiver: FeedReceiver<Self>;
 	}
 
+	/// Parachains interested in price feeds
+	#[pallet::storage]
+	pub(super) type RegisteredParachains<T: Config> = StorageValue<_, Vec<(ParaId, FeedId<T>)>, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -68,37 +72,9 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		// LTK : send updated price value to registered parachains ?
-
-		// fn on_finalize(n: T::BlockNumber) {
-		// 	for (para, payload) in Targets::<T>::get().into_iter() {
-		// 		let seq = PingCount::<T>::mutate(|seq| {
-		// 			*seq += 1;
-		// 			*seq
-		// 		});
-		// 		match T::XcmSender::send_xcm(
-		// 			(1, Junction::Parachain(para.into())),
-		// 			Xcm(vec![Transact {
-		// 				origin_type: OriginKind::Native,
-		// 				require_weight_at_most: 1_000,
-		// 				call: <T as Config>::Call::from(Call::<T>::ping {
-		// 					seq,
-		// 					payload: payload.clone(),
-		// 				})
-		// 				.encode()
-		// 				.into(),
-		// 			}]),
-		// 		) {
-		// 			Ok(()) => {
-		// 				Pings::<T>::insert(seq, n);
-		// 				Self::deposit_event(Event::PingSent(para, seq, payload));
-		// 			},
-		// 			Err(e) => {
-		// 				Self::deposit_event(Event::ErrorSendingPing(e, para, seq, payload));
-		// 			},
-		// 		}
-		// 	}
-		// }
+		fn on_finalize(_n: T::BlockNumber) {
+			Self::update_latest_value_on_registered_parachains();
+		}
 	}
 
 	#[pallet::call]
@@ -113,7 +89,6 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn receive_latest_data(origin: OriginFor<T>, feed_id: FeedId<T>, latest_value: FeedValue<T>) -> DispatchResult {
 			log::info!("***** Sublink XCM store_latest_data called");
-			// Only accept pings from other chains.
 			let para = ensure_sibling_para(<T as Config>::Origin::from(origin))?;
 
 			log::info!("***** Sublink XCM Received latest_value = {:?}", latest_value.clone());
@@ -126,38 +101,67 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn send_latest_data(origin: OriginFor<T>, feed_id: FeedId<T>) -> DispatchResult {
 			log::info!("***** Sublink XCM get_latest_data called");
-			// Only accept pings from other chains.
-			let para = ensure_sibling_para(<T as Config>::Origin::from(origin))?;
+			let parachain_id = ensure_sibling_para(<T as Config>::Origin::from(origin))?;
 
-			Self::deposit_event(Event::ReceiveRequestForLatestPriceValue(para, feed_id.clone()));
-			let feed = T::Oracle::feed(feed_id.clone()).ok_or(Error::<T>::FeedMissing) ?;
-			let RoundData { answer,..} = feed.latest_data();
+			Self::deposit_event(Event::ReceiveRequestForLatestPriceValue(parachain_id, feed_id.clone()));
+			RegisteredParachains::<T>::mutate(|t| {
+				if t.iter().position(|(p, _)| p == &parachain_id) == None {
+					t.push((parachain_id, feed_id.clone()));
+				}
+			});			
 
-			log::info!("***** Sublink XCM latest_value = {:?}", answer.clone());
+			Self::send_latest_data_through_xcm(parachain_id, feed_id.clone(), Self::get_latest_data(feed_id));
 
-			match T::XcmSender::send_xcm(
-				(1, Junction::Parachain(para.into())),
-				Xcm(vec![Transact {
-					origin_type: OriginKind::Native,
-					require_weight_at_most: 1_000,
-					call: <T as Config>::Call::from(Call::<T>::receive_latest_data {
-						feed_id: feed_id.clone(),
-						latest_value: answer.clone()
-					})
-					.encode()
-					.into(),
-				}]),
-			) {
-				Ok(()) => {
-					log::info!("***** Sublink XCM get_latest_data called store_latest_data");
-					Self::deposit_event(Event::SendLatestPriceValue(para, feed_id, answer))
-				},
-				Err(e) => {
-					log::error!("***** Sublink XCM get_latest_data cannot called store_latest_data");
-					Self::deposit_event(Event::ErrorSendingLatestPriceValue(e, para, feed_id, answer))
-				},
-			}
 			Ok(())
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn get_latest_data(feed_id: FeedId<T>) -> Option<FeedValue<T>> {
+			let feed = T::Oracle::feed(feed_id.clone());
+			match feed {
+				Some(feed_value) => {
+					let RoundData { answer,..} = feed_value.latest_data();
+					Some(answer)
+				},
+				None => {
+					log::info!("***** Sublink XCM No feed for = {:?}", feed_id);
+					None
+				}
+			}
+		}
+
+		fn send_latest_data_through_xcm(parachain_id: ParaId, feed_id: FeedId<T>, feed_value: Option<FeedValue<T>>){
+			if let Some(feed_latest_value) = feed_value {
+				match T::XcmSender::send_xcm(
+					(1, Junction::Parachain(parachain_id.into())),
+					Xcm(vec![Transact {
+						origin_type: OriginKind::Native,
+						require_weight_at_most: 1_000,
+						call: <T as Config>::Call::from(Call::<T>::receive_latest_data {
+							feed_id: feed_id.clone(),
+							latest_value: feed_latest_value.clone()
+						})
+						.encode()
+						.into(),
+					}]),
+				) {
+					Ok(()) => {
+						log::info!("***** Sublink XCM get_latest_data called store_latest_data");
+						Self::deposit_event(Event::SendLatestPriceValue(parachain_id, feed_id, feed_latest_value))
+					},
+					Err(e) => {
+						log::error!("***** Sublink XCM get_latest_data cannot called store_latest_data");
+						Self::deposit_event(Event::ErrorSendingLatestPriceValue(e, parachain_id, feed_id, feed_latest_value))
+					},
+				}		
+			}	
+		}
+
+		fn update_latest_value_on_registered_parachains() {
+			for (parachain_id, feed_id) in RegisteredParachains::<T>::get().into_iter() {
+				Self::send_latest_data_through_xcm(parachain_id, feed_id.clone(), Self::get_latest_data(feed_id));
+			}
 		}
 	}
 
