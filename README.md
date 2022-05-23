@@ -25,6 +25,8 @@ As a parachain, SubLink is able to send these price feeds to others parachains c
 
 SubLink is also able to provide the price feeds inside ink! smartcontracts, using a dedicated ink! chain extension. This way, getting a token price value is as easy as doing it [with Solidity](https://docs.chain.link/docs/get-the-latest-price/#solidity).
 
+![](./images/sublink_parachain.png)
+
 ## How I built it
 
 ### Play with the Chainlink Price feeds pallet
@@ -56,7 +58,7 @@ I added a second parachain (Defi Example Parachain) to be able to test this new 
 ### Get price feeds in ink! contract but through XCM
 
 The final step was to use the previous ink! chain extension in the Defi Example Parachain: instead of using the Chainlink pallet, the extension relies on a SubLink Parachain Oracle that exposes the same interface of the Chainlink Pallet, but uses the SubLink XCM pallet to get the price feeds from the SubLink parachain.
- 
+
 ### Putting all things together online
 
 Well, this project needs a lot of elements to get the simpliest use case ready :
@@ -82,10 +84,14 @@ All these elements have been deployed in a cloud [Kubernetes](./k8s/) cluster.
 
 The main challenge I faced was the time constraint, as I started the hackathon a little bit too late, with only a couple of spare time days.
 
-So I had to do it quickly, and had to make numerous shortcuts and hacky workarounds :(
+So I had to do it quickly, and had to make numerous shortcuts, hacks and workarounds :(
 
+Technical challenges were related to the use of new Substrate features like XCM and ink! chain extensions.
 
 ## What I learned
 
+To do :)
+
 ## What's next for SubLink
 
+To do :)
