@@ -228,10 +228,3 @@ impl sublink_xcm::Config for Runtime {
 	type Oracle = ChainlinkFeed;
 	type FeedReceiver = SubLinkParachainOracle;
   }
-
-impl cumulus_ping::Config for Runtime {
-	type Event = Event;
-	type Origin = Origin;
-	type Call = Call;
-	type XcmSender = XcmRouter;
-}

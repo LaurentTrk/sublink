@@ -613,9 +613,6 @@ construct_runtime!(
 		
 		// Template
 		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 80,
-
-		// Tests XCM
-		Spambot: cumulus_ping::{Pallet, Call, Storage, Event<T>} = 99,
 	}
 );
 
