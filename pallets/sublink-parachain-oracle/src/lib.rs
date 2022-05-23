@@ -20,7 +20,7 @@ pub mod pallet {
 		pallet_prelude::*
 	};
 	use pallet_chainlink_feed::pallet::{ FeedOracle, RoundData, FeedInterface, RoundId, MutableFeedInterface };
-	use sublink_xcm::{FeedRequester, FeedReceiver, FeedId, FeedValue};
+	use sublink_xcm::{FeedRequester, FeedReceiver, FeedId, FeedValue, RoundDataOf};
 
 	use frame_support::{
 		dispatch::DispatchResult,
@@ -188,8 +188,8 @@ pub mod pallet {
 	}
 
 	impl<T: Config> FeedReceiver<T> for Pallet<T> {
-		fn receive_latest_data(feed_id: FeedId<T>, feed_value: FeedValue<T>) {
-			log::info!("***** Sublink Parachain Oracle receiving {:?}={:?}", feed_id, feed_value);
+		fn receive_latest_data(feed_id: FeedId<T>, latest_round_data: RoundDataOf<T>) {
+			log::info!("***** Sublink Parachain Oracle receiving {:?}={:?}", feed_id, latest_round_data);
 			let feed = Feed::<T>::read_only_from(feed_id.clone());
 			if feed.is_none(){
 				let new_config = FeedConfig {
@@ -201,11 +201,13 @@ pub mod pallet {
 				Feeds::<T>::insert(feed_id.clone(), &new_config);
 			}
 			let current_block_number = <frame_system::Pallet<T>>::block_number();
+			// TODO LTK : started_at is relative to sublink parachain block numbers
+			// How to convert to the receiver parachain block ?
 			let new_round = RoundData {
-				started_at: T::BlockNumber::default(),
-				answer: feed_value,
+				started_at: latest_round_data.started_at,
+				answer: latest_round_data.answer,
 				updated_at: current_block_number,
-				answered_in_round: 0
+				answered_in_round: latest_round_data.answered_in_round
 			};			
 			log::info!("***** Sublink Parachain Oracle inserting new round");
 			Rounds::<T>::insert(feed_id.clone(), &new_round);

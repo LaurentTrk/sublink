@@ -13,7 +13,7 @@ use pallet_contracts::chain_extension::{
     RetVal, ChainExtension, Environment, Ext, InitState, SysConfig, UncheckedFrom,
 };
 
-use pallet_chainlink_feed::{FeedOracle, FeedInterface, RoundData};
+use pallet_chainlink_feed::{FeedOracle, FeedInterface};
 
 
 /// The chain Extension for ChainLink
@@ -41,7 +41,7 @@ where   Runtime: pallet_contracts::Config,
 				// let feed_id: <Runtime as pallet_chainlink_feed::Config>::FeedId = env.read_as_unbounded(env.in_len())?;
 				let feed_id: <<Runtime as sublink_xcm::Config>::Oracle as FeedOracle<Runtime>>::FeedId = env.read_as_unbounded(env.in_len())?;
                 let feed = sublink_parachain_oracle::Pallet::<Runtime>::feed(feed_id.clone()).unwrap();
-                let RoundData { answer,..} = feed.latest_data();
+                let answer = feed.latest_data();
                 log::info!("called latest_data extension with feed_id {:?} = {:?}", feed_id, answer);
                 let r = answer.encode();
 				env.write(&r, false, None).map_err(|_| {

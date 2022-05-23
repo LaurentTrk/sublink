@@ -17,13 +17,15 @@ pub mod pallet {
 
 	pub type FeedValue<T> = <<<T as Config>::Oracle as FeedOracle<T>>::Feed as FeedInterface<T>>::Value;
 	pub type FeedId<T> = <<T as Config>::Oracle as FeedOracle<T>>::FeedId;
+	pub type RoundDataOf<T> =
+		RoundData<<T as frame_system::Config>::BlockNumber, FeedValue<T>>;
 
 	pub trait FeedRequester<T: Config> {
 		fn request_latest_data(feed_id: FeedId<T>); 
 	}
 
 	pub trait FeedReceiver<T: Config> {
-		fn receive_latest_data(feed_id: FeedId<T>, feed_value: FeedValue<T>); 
+		fn receive_latest_data(feed_id: FeedId<T>, round_data: RoundDataOf<T>); 
 	}
 
 	#[pallet::pallet]
@@ -59,10 +61,10 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		SendRequestForLatestPriceValue(ParaId, <T::Oracle as FeedOracle<T>>::FeedId),
 		ReceiveRequestForLatestPriceValue(ParaId, <T::Oracle as FeedOracle<T>>::FeedId),
-		SendLatestPriceValue(ParaId, <T::Oracle as FeedOracle<T>>::FeedId, <<T::Oracle as FeedOracle<T>>::Feed as FeedInterface<T>>::Value),
-		ReceiveLatestPriceValue(ParaId, <T::Oracle as FeedOracle<T>>::FeedId, <<T::Oracle as FeedOracle<T>>::Feed as FeedInterface<T>>::Value),
+		SendLatestPriceValue(ParaId, <T::Oracle as FeedOracle<T>>::FeedId, RoundDataOf<T>),
+		ReceiveLatestPriceValue(ParaId, <T::Oracle as FeedOracle<T>>::FeedId, RoundDataOf<T>),
 		ErrorSendingRequest(SendError, ParaId, <T::Oracle as FeedOracle<T>>::FeedId),
-		ErrorSendingLatestPriceValue(SendError, ParaId, <T::Oracle as FeedOracle<T>>::FeedId, <<T::Oracle as FeedOracle<T>>::Feed as FeedInterface<T>>::Value),
+		ErrorSendingLatestPriceValue(SendError, ParaId, <T::Oracle as FeedOracle<T>>::FeedId, RoundDataOf<T>),
 	}
 
 	#[pallet::error]
@@ -87,13 +89,13 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn receive_latest_data(origin: OriginFor<T>, feed_id: FeedId<T>, latest_value: FeedValue<T>) -> DispatchResult {
+		pub fn receive_latest_data(origin: OriginFor<T>, feed_id: FeedId<T>, latest_round_data: RoundDataOf<T>) -> DispatchResult {
 			log::info!("***** Sublink XCM store_latest_data called");
 			let para = ensure_sibling_para(<T as Config>::Origin::from(origin))?;
 
-			log::info!("***** Sublink XCM Received latest_value = {:?}", latest_value.clone());
-			<T as Config>::FeedReceiver::receive_latest_data(feed_id.clone(), latest_value.clone());
-			Self::deposit_event(Event::ReceiveLatestPriceValue(para, feed_id, latest_value));
+			log::info!("***** Sublink XCM Received latest_value = {:?}", latest_round_data.clone());
+			<T as Config>::FeedReceiver::receive_latest_data(feed_id.clone(), latest_round_data.clone());
+			Self::deposit_event(Event::ReceiveLatestPriceValue(para, feed_id, latest_round_data));
 			Ok(())
 
 		}
@@ -117,12 +119,11 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn get_latest_data(feed_id: FeedId<T>) -> Option<FeedValue<T>> {
+		fn get_latest_data(feed_id: FeedId<T>) -> Option<RoundDataOf<T>> {
 			let feed = T::Oracle::feed(feed_id.clone());
 			match feed {
 				Some(feed_value) => {
-					let RoundData { answer,..} = feed_value.latest_data();
-					Some(answer)
+					Some(feed_value.latest_data())
 				},
 				None => {
 					log::info!("***** Sublink XCM No feed for = {:?}", feed_id);
@@ -131,8 +132,8 @@ pub mod pallet {
 			}
 		}
 
-		fn send_latest_data_through_xcm(parachain_id: ParaId, feed_id: FeedId<T>, feed_value: Option<FeedValue<T>>){
-			if let Some(feed_latest_value) = feed_value {
+		fn send_latest_data_through_xcm(parachain_id: ParaId, feed_id: FeedId<T>, latest_round_data: Option<RoundDataOf<T>>){
+			if let Some(latest_round_data_value) = latest_round_data {
 				match T::XcmSender::send_xcm(
 					(1, Junction::Parachain(parachain_id.into())),
 					Xcm(vec![Transact {
@@ -140,7 +141,7 @@ pub mod pallet {
 						require_weight_at_most: 1_000,
 						call: <T as Config>::Call::from(Call::<T>::receive_latest_data {
 							feed_id: feed_id.clone(),
-							latest_value: feed_latest_value.clone()
+							latest_round_data: latest_round_data_value.clone()
 						})
 						.encode()
 						.into(),
@@ -148,11 +149,11 @@ pub mod pallet {
 				) {
 					Ok(()) => {
 						log::info!("***** Sublink XCM get_latest_data called store_latest_data");
-						Self::deposit_event(Event::SendLatestPriceValue(parachain_id, feed_id, feed_latest_value))
+						Self::deposit_event(Event::SendLatestPriceValue(parachain_id, feed_id, latest_round_data_value))
 					},
 					Err(e) => {
 						log::error!("***** Sublink XCM get_latest_data cannot called store_latest_data");
-						Self::deposit_event(Event::ErrorSendingLatestPriceValue(e, parachain_id, feed_id, feed_latest_value))
+						Self::deposit_event(Event::ErrorSendingLatestPriceValue(e, parachain_id, feed_id, latest_round_data_value))
 					},
 				}		
 			}	
@@ -196,7 +197,7 @@ pub mod pallet {
 	}
 
 	impl<T: Config> FeedReceiver<T> for () {
-		fn receive_latest_data(_feed_id: FeedId<T>, _feed_value: FeedValue<T>) {
+		fn receive_latest_data(_feed_id: FeedId<T>, _latest_round_data: RoundDataOf<T>) {
 			// do_nothing
 		}
 	}	
