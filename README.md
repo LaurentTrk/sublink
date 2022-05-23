@@ -4,6 +4,7 @@ A [Substrate](https://substrate.io/) Parachain connected to [Chainlink](https://
 
 Personal project for the [Chainlink Spring 22 Hackathon](https://chain.link/hackathon).
 
+> **Disclaimer**: This project is a hackathon project, and should be treated as is. It obviously cannot be used in production.
 ## Inspiration
 
 During my first [Chainlink Hackathon](https://devpost.com/software/ki-dot-a-substrate-based-blockchain-to-help-micro-funding) in 2020, I had to setup, debug and update the existing [ChainLink Polkadot bridge](https://github.com/smartcontractkit/chainlink-polkadot).
@@ -28,14 +29,34 @@ SubLink is also able to provide the price feeds inside ink! smartcontracts, usin
 
 ### Play with the Chainlink Price feeds pallet
 
+Since 2020, the Chainlink Polkadot bridge has been enhanced to include a [pallet dedicated to price feeds](https://github.com/smartcontractkit/chainlink-polkadot/tree/master/pallet-chainlink-feed).
+
+I dedicated some time to understand, update and experience this new pallet, and to get my first price feed updated on a substrate node.
+
+> **Workaround**: As I didn't manage to get the external initiator to work, I had to reproduce its behaviour in a very quick and dirty NodeJS script in order to trigger jobs in Chainlink Nodes.
+> My initial plan was to use Offchain workers, but it seems that they are [not working in parachains](https://substrate.stackexchange.com/questions/2597/offchain-workers-in-parachain) _(well I didn't succeed)_
+
+
 ### Convert my local chain to a parachain
+
+As I needed cross chains messaging, I had to [convert my local chain to a parachain](https://docs.substrate.io/how-to-guides/v3/parachains/convert/), and setup a [relay chain](https://docs.substrate.io/tutorials/v3/cumulus/start-relay/) to connect to.
 
 ### Get price feeds in ink! contract
 
+My ultimate goal was to get price feed in ink! smartcontract, so I decided to first check I will be able to do it on my new parachain before introducing XCM.
+
+I looked at some examples of ink! chain extension on GitHub to learn how this thing work, and build a minimalist chain extension to bridge the Chainlink Price feed pallet to ink! contract.
+
 ### Implement cross chains messaging for price feeds
+
+With the use of [this tutorial](https://medium.com/oak-blockchain/tutorial-polkadot-cross-chain-message-passing-xcmp-demo-with-ping-pallet-f53397158ab4), I crafted a new SubLink XCM pallet to deal with message exchange to carry price request and values.
+
+I added a second parachain (Defi Example Parachain) to be able to test this new pallet, and exchange price feeds between this parachain and the SubLink parachain.
 
 ### Get price feeds in ink! contract but through XCM
 
+The final step was to use the previous ink! chain extension in the Defi Example Parachain: instead of using the Chainlink pallet, the extension relies on a SubLink Parachain Oracle that exposes the same interface of the Chainlink Pallet, but uses the SubLink XCM pallet to get the price feeds from the SubLink parachain.
+ 
 ### Putting all things together online
 
 Well, this project needs a lot of elements to get the simpliest use case ready :
