@@ -35,10 +35,6 @@ Since 2020, the Chainlink Polkadot bridge has been enhanced to include a [pallet
 
 I dedicated some time to understand, update and experience this new pallet, and to get my first price feed updated on a substrate node.
 
-> **Workaround**: As I didn't manage to get the external initiator to work, I had to reproduce its behaviour in a very quick and dirty NodeJS script in order to trigger jobs in Chainlink Nodes.
-> My initial plan was to use Offchain workers, but it seems that they are [not working in parachains](https://substrate.stackexchange.com/questions/2597/offchain-workers-in-parachain) _(well I didn't succeed)_
-
-
 ### Convert my local chain to a parachain
 
 As I needed cross chains messaging, I had to [convert my local chain to a parachain](https://docs.substrate.io/how-to-guides/v3/parachains/convert/), and setup a [relay chain](https://docs.substrate.io/tutorials/v3/cumulus/start-relay/) to connect to.
@@ -63,12 +59,12 @@ The final step was to use the previous ink! chain extension in the Defi Example 
 
 Well, this project needs a lot of elements to get the simpliest use case ready :
 
-- At least one chainlink node with 3 jobs to get prices from 3 different sources
-- The relay chain with 2 validators
-- The SubLink parachain with 2 collators
-- The Defi Example parachain with one collator
+- At least one [chainlink node](https://chainlink.ltk.codes/) with 3 jobs to get prices from 3 different sources
+- The [relay chain](https://sublink.ltk.codes/?rpc=wss%3A%2F%2Frelaychain.ltk.codes#/explorer) with 2 validators
+- The [SubLink parachain](https://sublink.ltk.codes/?rpc=wss%3A%2F%2Fsublinkchain.ltk.codes#/explorer) with 2 collators
+- The [Defi Example parachain](https://sublink.ltk.codes/?rpc=wss%3A%2F%2Fdefichain.ltk.codes#/explorer) with one collator
 - A custom Polkadot JS apps that displays only the 3 chains
-- A custom Contracts UI application to connect to the Defi Example parachain
+- A custom [Contracts UI](https://contracts.ltk.codes/) application to connect to the Defi Example parachain
 - We need 3 differents Substrate Adapters to update prices on the SubLink chain from these 3 jobs
 - An external initiator to trigger Chainlink jobs
 - An Nginx reverse proxy to rule them all
@@ -79,12 +75,21 @@ All these elements have been deployed in a cloud [Kubernetes](./k8s/) cluster.
 
 ![](./images/SubLink%20Components.png)
 
+For technical reasons, the source code has been splitted in several repositories:
+- [SubLink Parachain](https://github.com/LaurentTrk/sublink)
+- [Chainlink Pricefeed Pallet Updated](https://github.com/LaurentTrk/chainlink-polkadot/tree/sublink)
+- [SubLink Pallets](https://github.com/LaurentTrk/sublink-pallets)
+- [Defi Example Parachain](https://github.com/LaurentTrk/sublink-defichain)
+- [ink! Sample Contract](https://github.com/LaurentTrk/sublink-defi-contract)
+- [Chainlink Substrate Adapter Updated](https://github.com/LaurentTrk/substrate-adapter/tree/sublink)
+- [Contracts UI](https://github.com/LaurentTrk/contracts-ui/tree/sublink)
+- [Polkadot JS Apps](https://github.com/LaurentTrk/polkadot-js-apps/tree/sublink)
 
 ## Challenges I ran into
 
 The main challenge I faced was the time constraint, as I started the hackathon a little bit too late, with only a couple of spare time days.
 
-So I had to do it quickly, and had to make numerous shortcuts, hacks and workarounds :(
+So I had to do it quickly, and had to make numerous [shortcuts, hacks and workarounds](./limitations.md) :(
 
 Technical challenges were related to the use of new Substrate features like XCM and ink! chain extensions.
 
