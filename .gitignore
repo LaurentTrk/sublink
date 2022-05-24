@@ -19,3 +19,8 @@
 deployment/specs/*
 deployment/chains/*
 parachain-collator
+
+k8s/.api
+k8s/.password
+k8s/kovan.env
+k8s/substrate_adapter*.env
