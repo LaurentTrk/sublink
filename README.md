@@ -4,7 +4,7 @@ A [Substrate](https://substrate.io/) Parachain connected to [Chainlink](https://
 
 Personal project for the [Chainlink Spring 22 Hackathon](https://chain.link/hackathon).
 
-> **Disclaimer**: This project is a hackathon project, and should be treated as is. It obviously cannot be used in production.
+> **Disclaimer**: This project is a hackathon project, and should be treated as is. It is obviously not ready to be used in any parachain, and is more like a proof of concept.
 ## Inspiration
 
 During my first [Chainlink Hackathon](https://devpost.com/software/ki-dot-a-substrate-based-blockchain-to-help-micro-funding) in 2020, I had to setup, debug and update the existing [ChainLink Polkadot bridge](https://github.com/smartcontractkit/chainlink-polkadot).
@@ -19,7 +19,7 @@ That's what the SubLink project is about :)
 
 ## What it does
 
-SubLink is a substrate parachain, connected to some Chainlink nodes, and configured to retrieve and store asset price (aka [Price feeds](https://docs.chain.link/docs/using-chainlink-reference-contracts/)) from these nodes. The bridge configuration between Chainlink nodes and the parachain is done only for the SubLink parachain.
+SubLink is a substrate parachain, connected to some Chainlink nodes, and configured to retrieve and store asset price (aka [Price feeds](https://docs.chain.link/docs/using-chainlink-reference-contracts/)) from these nodes. The bridge configuration between Chainlink nodes and the parachain is done only for the SubLink parachain. Price values are retrieved from different external sources, and aggregated/consolidated on chain.
 
 As a parachain, SubLink is able to send these price feeds to others parachains connected to the same relay chain. This is done through the exchange of messages following the [XCM format](https://wiki.polkadot.network/docs/learn-crosschain), and the others parachains don't need to get connected to any Chainlink nodes.
 
@@ -90,8 +90,22 @@ Technical challenges were related to the use of new Substrate features like XCM 
 
 ## What I learned
 
-To do :)
+During this hackathon, I learned a lot about Parachains and XCM. It was a good way to deep dive into these stuffs.
+
 
 ## What's next for SubLink
 
-To do :)
+There is still a huge work to do to have a minimal viable parachain, and some concerns need to be adressed (_non limitated list_):
+
+- Tokenomics is part of the game: how incentivize chainlink operators to connect to the SubLink parachain ? Is the Oracle service provided by SubLink a free service for others parachains ?
+- Adapters and External initiator deployment need to be simplified and improved
+- To be honest, I don't know how this will/could scale with hundreds of nodes reporting hundreds of feeds dispatched on hundreds of parachains...
+- Feed update : need to find a way to update price values only when needed, both at the report side (from Chainlink nodes, as it's done on Ethereum) and for the XCM dispatching
+
+This project could become a common good parachain for every others parachain on Kusama/Polkadot, bringing asset prices to everyone very easily.
+We could imagine having democratic features to select nodes or new feeds to be available, or even integrate others Oracle.
+A sort of meta Substrate Oracle, but sounds like I should not say that in a Chainlink hackathon right ? ;)
+
+Well, I cant' predict the future, but I can say I definitely enjoyed these few days spent in this Chainlink/Polkadot world :pray:
+
+Thank you for reading me.
