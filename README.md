@@ -68,6 +68,7 @@ Well, this project needs a lot of elements to get the simpliest use case ready :
 - We need 3 differents Substrate Adapters to update prices on the SubLink chain from these 3 jobs
 - An external initiator to trigger Chainlink jobs
 - An Nginx reverse proxy to rule them all
+- A [Gitpod](https://gitpod.io/) environment to demonstrate the ink! contract build online
   
 All these elements have been deployed in a cloud [Kubernetes](./k8s/) cluster.
 
