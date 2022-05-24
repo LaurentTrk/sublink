@@ -75,18 +75,21 @@ cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", de
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", default-features = false,  branch = "polkadot-v0.9.20" }
 parachain-info = { git = "https://github.com/paritytech/cumulus", default-features = false,  branch = "polkadot-v0.9.20" }
 
-# SubLink
+
 pallet-randomness-collective-flip = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
 
+# Contracts
 pallet-contracts = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
 pallet-contracts-primitives = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
 pallet-contracts-rpc-runtime-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
-pallet-chainlink-feed = { path = '../pallets/pallet-chainlink-feed', default-features = false }
 
-sublink-ink-runtime = { path = '../pallets/sublink-ink/runtime', default-features = false }
-sublink-xcm = { path = '../pallets/sublink-xcm', default-features = false }
-# sublink-oracle = { path = '../pallets/sublink-oracle', default-features = false }
-sublink-parachain-oracle = { path = '../pallets/sublink-parachain-oracle', default-features = false }
+# Chainlink
+pallet-chainlink-feed = { git = "https://github.com/LaurentTrk/chainlink-polkadot", default-features = false,  branch = "sublink" }
+
+# SubLink
+sublink-ink-runtime = { git = "https://github.com/LaurentTrk/sublink-pallets", default-features = false,  branch = "main" }
+sublink-xcm = { git = "https://github.com/LaurentTrk/sublink-pallets", default-features = false,  branch = "main" }
+sublink-parachain-oracle = { git = "https://github.com/LaurentTrk/sublink-pallets", default-features = false,  branch = "main" }
 
 
 [features]
