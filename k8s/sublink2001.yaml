@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: kovan-chainlink
-          image: laurenttrk/sublink-defichain:v0.0.5
+          image: laurenttrk/sublink-defichain:v0.0.6
           args: [
             "--alice",
             "--collator",

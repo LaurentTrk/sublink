@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: kovan-chainlink
-          image: laurenttrk/sublink:v0.0.12
+          image: laurenttrk/sublink:v0.0.13
           args: [
             "--alice",
             "--collator",
@@ -76,7 +76,7 @@ spec:
     spec:
       containers:
         - name: kovan-chainlink
-          image: laurenttrk/sublink:v0.0.12
+          image: laurenttrk/sublink:v0.0.13
           args: [
             "--bob",
             "--collator",
