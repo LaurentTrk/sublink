@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sublink-relaychain-alice
+  labels:
+    app: sublink-relaychain-alice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sublink-relaychain-alice
+  template:
+    metadata:
+      labels:
+        app: sublink-relaychain-alice
+        node: sublink-relaychain
+    spec:
+      containers:
+        - name: kovan-chainlink
+          image: laurenttrk/polkadot:v0.9.20
+          args: [
+            "--name", "SubLinkRelayAlice",
+            "--ws-external",
+            "--unsafe-rpc-external",
+            "--rpc-methods=unsafe",
+            "--rpc-cors", "all",
+            "--alice",
+            "--validator",
+            "--base-path","/polkadot/chains/relaychain/alice",
+            "--chain","/specs/relaychain.spec",
+            "--port","30333",
+            "--ws-port","9944",
+            "--node-key","006de8d9b217dd9a501bab2c2060c1f0861e70d73f6e62bc64389151afda0abb"
+          ]
+          ports:
+          - containerPort: 30333
+            name: p2p-port
+          - containerPort: 9933
+            name: rpc-port
+          - containerPort: 9944
+            name: ws-port
+          volumeMounts:
+          - mountPath: /polkadot/chains
+            name: chain-volume
+      volumes:
+      - name: chain-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sublink-relaychain-alice
+  labels:
+    app: sublink-relaychain-alice
+spec:
+  selector:
+    app: sublink-relaychain-alice
+  ports:
+  - port: 30333
+    targetPort: 30333
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sublink-relaychain-bob
+  labels:
+    app: sublink-relaychain-bob
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sublink-relaychain-bob
+  template:
+    metadata:
+      labels:
+        app: sublink-relaychain-bob
+        node: sublink-relaychain
+    spec:
+      containers:
+        - name: kovan-chainlink
+          image: laurenttrk/polkadot:v0.9.20
+          args: [
+            "--name", "SubLinkRelayBob",
+            "--ws-external",
+            "--unsafe-rpc-external",
+            "--rpc-methods=unsafe",
+            "--rpc-cors", "all",
+            "--bob",
+            "--validator",
+            "--base-path","/polkadot/chains/relaychain/bob",
+            "--chain","/specs/relaychain.spec",
+            "--port","30333",
+            "--ws-port","9944",
+            "--bootnodes","/dns/sublink-relaychain-alice/tcp/30333/p2p/12D3KooWLcNx6Lzrq6M3EtVfciBP6dXFt5S6iwavPJ6FA7A5nsPQ"
+          ]
+          ports:
+          - containerPort: 30333
+            name: p2p-port
+          - containerPort: 9933
+            name: rpc-port
+          - containerPort: 9944
+            name: ws-port
+          volumeMounts:
+          - mountPath: /polkadot/chains
+            name: chain-volume
+      volumes:
+      - name: chain-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sublink-relaychain-bob
+  labels:
+    app: sublink-relaychain-bob
+spec:
+  selector:
+    app: sublink-relaychain-bob
+  ports:
+  - port: 30334
+    targetPort: 30333
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sublink-relaychain-ws
+  labels:
+    node: sublink-relaychain
+spec:
+  selector:
+    node: sublink-relaychain
+  ports:
+  - port: 9944
+    targetPort: 9944
+    protocol: TCP

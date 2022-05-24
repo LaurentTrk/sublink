@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sublink-parachain-2001
+  labels:
+    app: sublink-parachain-2001
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sublink-parachain-2001
+  template:
+    metadata:
+      labels:
+        app: sublink-parachain-2001
+        node: sublink-parachain-2001
+    spec:
+      containers:
+        - name: kovan-chainlink
+          image: laurenttrk/sublink-defichain:v0.0.5
+          args: [
+            "--alice",
+            "--collator",
+            "--force-authoring",
+            "--chain","/specs/rococo-local-sublink-parachain-2001-raw.json",
+            "--base-path","/polkadot/chains/sublink/alice",
+            "--port","40333",
+            "--ws-port","8844",
+            "-linfo,runtime::contracts=debug",
+            "--ws-external",
+            "--unsafe-rpc-external",
+            "--rpc-methods=unsafe",
+            "--rpc-cors", "all", 
+            "--offchain-worker", "always",           
+            "--",
+            "--execution","wasm",
+            "--chain","/specs/relaychain.spec",
+            "--port","30333",
+            "--ws-port","9944",
+            "--bootnodes","/dns/sublink-relaychain-alice/tcp/30333/p2p/12D3KooWLcNx6Lzrq6M3EtVfciBP6dXFt5S6iwavPJ6FA7A5nsPQ",
+            "--offchain-worker", "always",
+          ]
+          ports:
+          - containerPort: 30333
+            name: relay-p2p-port
+          - containerPort: 9944
+            name: relay-ws-port
+          - containerPort: 40333
+            name: para-p2p-port
+          - containerPort: 8844
+            name: para-ws-port
+          volumeMounts:
+          - mountPath: /polkadot/chains
+            name: chain-volume
+      volumes:
+      - name: chain-volume
+        emptyDir: {}

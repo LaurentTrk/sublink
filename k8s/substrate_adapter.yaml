@@ -1,0 +1,178 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sublink-substrate-adapter
+  labels:
+    app: sublink-substrate-adapter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sublink-substrate-adapter
+  template:
+    metadata:
+      labels:
+        app: sublink-substrate-adapter
+    spec:
+      containers:
+        - name: sublink-substrate-adapter
+          image: laurenttrk/substrate-adapter:0.3.0
+          envFrom:
+          - configMapRef:
+              name: substrate-adapter-env
+          ports:
+          - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sublink-substrate-adapter2
+  labels:
+    app: sublink-substrate-adapter2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sublink-substrate-adapter2
+  template:
+    metadata:
+      labels:
+        app: sublink-substrate-adapter2
+    spec:
+      containers:
+        - name: sublink-substrate-adapter2
+          image: laurenttrk/substrate-adapter:0.3.0
+          envFrom:
+          - configMapRef:
+              name: substrate-adapter2-env
+          ports:
+          - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sublink-substrate-adapter3
+  labels:
+    app: sublink-substrate-adapter3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sublink-substrate-adapter3
+  template:
+    metadata:
+      labels:
+        app: sublink-substrate-adapter3
+    spec:
+      containers:
+        - name: sublink-substrate-adapter3
+          image: laurenttrk/substrate-adapter:0.3.0
+          envFrom:
+          - configMapRef:
+              name: substrate-adapter3-env
+          ports:
+          - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sublink-substrate-adapter4
+  labels:
+    app: sublink-substrate-adapter4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sublink-substrate-adapter4
+  template:
+    metadata:
+      labels:
+        app: sublink-substrate-adapter4
+    spec:
+      containers:
+        - name: sublink-substrate-adapter4
+          image: laurenttrk/substrate-adapter:0.3.0
+          envFrom:
+          - configMapRef:
+              name: substrate-adapter4-env
+          ports:
+          - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sublink-round-initiator
+  labels:
+    app: sublink-round-initiator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sublink-round-initiator
+  template:
+    metadata:
+      labels:
+        app: sublink-round-initiator
+    spec:
+      containers:
+        - name: sublink-round-initiator
+          image: laurenttrk/sublink-round-initiator:0.0.6
+          env:
+          - name: SUBLINK_CHAINLINK_ADAPTER_ADDRESS
+            value: "http://sublink-adapter4:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sublink-adapter
+  labels:
+    app: sublink-substrate-adapter
+spec:
+  selector:
+    app: sublink-substrate-adapter
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sublink-adapter2
+  labels:
+    app: sublink-substrate-adapter2
+spec:
+  selector:
+    app: sublink-substrate-adapter2
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sublink-adapter3
+  labels:
+    app: sublink-substrate-adapter3
+spec:
+  selector:
+    app: sublink-substrate-adapter3
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sublink-adapter4
+  labels:
+    app: sublink-substrate-adapter4
+spec:
+  selector:
+    app: sublink-substrate-adapter4
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sublink-apps
+  labels:
+    app: sublink-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sublink-apps
+  template:
+    metadata:
+      labels:
+        app: sublink-apps
+        node: sublink-apps
+    spec:
+      containers:
+        - name: sublink-apps
+          image: laurenttrk/polkadot-js-apps:v0.114.2-18
+          ports:
+          - containerPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sublink-contracts
+  labels:
+    app: sublink-contracts
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sublink-contracts
+  template:
+    metadata:
+      labels:
+        app: sublink-contracts
+        node: sublink-contracts
+    spec:
+      containers:
+        - name: sublink-contracts
+          image: laurenttrk/contracts-ui:0.0.2
+          ports:
+          - containerPort: 80
